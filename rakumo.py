@@ -1,23 +1,22 @@
 # -*- coding: UTF-8 -*-
+#import win32com.client as win32
 import openpyxl
 from easygui import *
 import os
-#import win32com.client as win32
 
-# filename = fileopenbox(msg="ファイルを開く")
-#
-# print(filename)
-#
+filename = fileopenbox(msg="ファイルを開く")
+#,default=r"\\192.168.11.100\radish\システム共有\運行センター\90.TeamFolders\02.IdManageTeam\01. GoogleApps\05. アカウント管理\Rakumo更新\*.xls",filetypes="*.xls"
+
+print(filename)
+
 # excel = win32.gencache.EnsureDispatch('Excel.Application')
 # wb = excel.Workbooks.Open(filename)
 #
-# wb.SaveAs(filename+"x", FileFormat = 51)    #FileFormat = 51 is for .xlsx extension
-# wb.Close()                                  #FileFormat = 56 is for .xls extension
+# wb.SaveAs(filename+"x", FileFormat=51)   #FileFormat = 51 is for .xlsx extension
+# wb.Close()                               #FileFormat = 56 is for .xls extension
 # excel.Application.Quit()
-#
-# filename = filename + "x"
 
-filename = fileopenbox(msg="ファイルを開く",title="123")
+# filename = filename + "x"
 
 book = openpyxl.load_workbook(filename)
 
@@ -41,15 +40,29 @@ for row in sht.iter_rows(min_row=2):
 print(f"共有{len(targets)}条数据需要排列")
 
 #把需要排序的数据复制进第二张sheet
-for data in targets:
-    sht2.append(data)
+for targat in targets:
+    sht2.append(targat)
 
 #把需要排序的数据从第一张sheet删除
 for col in colV:
     if col.value is not None:
-        RowNumber = col.row
-        sht.delete_rows(RowNumber)
+        sht.delete_rows(col.row)
 # 以上 把第一页中需要排列的数据剪切到第二页
+
+def insert_to_excel(row):
+
+    sht.insert_rows(row)
+
+    i = 0
+
+    for col in sht.iter_cols(min_row=row, max_col=22, max_row=row):
+        for cell in col:
+            cell.value = temps[i]
+            i += 1
+
+    sht2.delete_rows(1)
+
+    return
 
 print(sht2["H1"].value)
 
@@ -58,6 +71,10 @@ for i in range(sht2.max_row):
     colH = sht["H"]
     same_busho = 0
     same_busho_kojin = 0
+
+    colB = sht["B"]
+    ads_same_busho = 0
+    ads_same_busho_kojin = 0
 
     compare_list = []
     old_list = []
@@ -71,8 +88,18 @@ for i in range(sht2.max_row):
         if col.value == sht2["H1"].value and "mbox" not in sht["A" + str(col.row)].value and "atenda" not in sht["A" + str(col.row)].value and sht["A" + str(col.row)].value.split("-")[0][-1].isdigit() == True: #同部署的个人邮箱
             same_busho_kojin += 1 #同部署的个人邮箱数量
 
-    print(f"同部署的共有{same_busho}条,不同部署的共有{sht.max_row - same_busho}条")
-    print(f"同部署的个人共有{same_busho_kojin}条")
+    for col in colB:
+        if col.value == sht2["B1"].value:
+            ads_same_busho += 1
+
+        if col.value == sht2["B1"].value and "mbox" not in sht["A" + str(col.row)].value and sht["A" + str(col.row)].value.split("-")[0][-1].isdigit() == True: #同部署的个人邮箱
+            ads_same_busho_kojin += 1 #同部署的个人邮箱数量
+
+    print(f"AD:同部署的共有{same_busho}条,不同部署的共有{sht.max_row - same_busho}条")
+    print(f"AD:同部署的个人共有{same_busho_kojin}条")
+
+    print(f"ADS:同部署的共有{ads_same_busho}条,不同部署的共有{sht.max_row - ads_same_busho}条")
+    print(f"ADS:同部署的个人共有{ads_same_busho_kojin}条")
 
     # ad个人邮箱
     if sht2["H1"].value.startswith("ad") and not sht2["H1"].value.startswith("ada") and not sht2["H1"].value.startswith("ads") and "mbox" not in sht2["A1"].value and "atenda" not in sht2["A1"].value and sht2["A1"].value.split("-")[0][-1].isdigit() == True:
@@ -81,7 +108,8 @@ for i in range(sht2.max_row):
             #print("进入1号分支")
 
             for col in colH:
-                if col.value == sht2["H1"].value and "mbox" not in sht["A" + str(col.row)].value and "atenda" not in sht["A" + str(col.row)].value and sht["A" + str(col.row)].value.split("-")[0][-1].isdigit() == True: #同部署的个人邮箱
+                if col.value == sht2["H1"].value and "mbox" not in sht["A" + str(col.row)].value and "atenda" not in sht["A" + str(col.row)].value\
+                        and sht["A" + str(col.row)].value.split("-")[0][-1].isdigit() == True: #同部署的个人邮箱
                     lastone = col.row
 
                     if sht2["J1"].value is not None:#（并且不是空值的情况）
@@ -258,8 +286,8 @@ for i in range(sht2.max_row):
                 elif not each_cell.value.startswith("ad") and not each_cell.value.startswith("ads") and not each_cell.value.startswith("ada"):
                     lastone = sht.max_row + 1
 
-    # ad共用邮箱和atenda
-    elif sht2["H1"].value.startswith("ad") and not sht2["H1"].value.startswith("ada") and not sht2["H1"].value.startswith("ads") and ("mbox" in sht2["A1"].value or "atenda" in sht2["A1"].value):
+    # ad共用邮箱
+    elif sht2["H1"].value.startswith("ad") and not sht2["H1"].value.startswith("ada") and not sht2["H1"].value.startswith("ads") and "mbox" in sht2["A1"].value:
         if same_busho != 0:  # 如果同部署的邮箱数量不为0
             for col in colH:
                 if col.value == sht2["H1"].value:
@@ -276,10 +304,79 @@ for i in range(sht2.max_row):
                         lastone = each_cell.row
                         break
 
-    # 其他(所有ad之外的)
+    # ads的情况
+    elif sht2["H1"].value.startswith("ads"):
+        if ads_same_busho != 0:
+            for col in colH:
+                lastone = col.row
+                if sht2["J1"].value is not None:
+                    # ads队长
+                    if "隊長" in sht2["J1"].value and "副隊長" not in sht2["J1"].value:
+                        # 这边也是队长
+                        if sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and "隊長" in sht["J" + str(col.row)].value and "副隊長" not in sht["J" + str(col.row)].value:
+                            compare_list.append(sht["E" + str(col.row)].value)
+                            old_list.append(sht["E" + str(col.row)].value)
+                        # 这边是副队长
+                        elif sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and "隊長" not in sht["J" + str(col.row)].value and "副隊長" in sht["J" + str(col.row)].value:
+                            break
+                        # 这边不是队长或副队长（空职位）
+                        elif sht["J" + str(col.row)].value is None and sht["B" + str(col.row)].value == sht2["B1"].value:
+                            break
+                        # 这边不是队长或副队长（非空职位）
+                        elif sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and ("隊長" in sht["J" + str(col.row)].value or "副隊長" in sht["J" + str(col.row)].value):
+                            break
+
+                    # ads副队长
+                    elif "副隊長" in sht2["J1"].value:
+                        # 这边也是副队长
+                        if sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and "副隊長" in sht["J" + str(col.row)].value:
+                            compare_list.append(sht["E" + str(col.row)].value)
+                            old_list.append(sht["E" + str(col.row)].value)
+                        # 这边是队长
+                        elif sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and "隊長" in sht["J" + str(col.row)].value:
+                            k += 1
+                            if k == ads_same_busho_kojin:
+                                lastone += 1
+                                break
+                        # 这边不是队长或副队长（空职位）
+                        elif sht["J" + str(col.row)].value is None and sht["B" + str(col.row)].value == sht2["B1"].value:
+                            break
+                        # 这边不是队长或副队长（非空职位）
+                        elif sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and ("隊長" in sht["J" + str(col.row)].value or "副隊長" in sht["J" + str(col.row)].value):
+                            break
+
+                    # ads又不是队长又不是副队长 但是是警备队的人(警备队的一般或者是警备队的共用邮箱)
+                    elif "隊長" not in sht2["J1"].value and "警備隊" in sht2["J1"].value:
+                        # 这边没有队长或副队长
+                        if sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value and "隊長" not in sht["J" + str(col.row)].value:
+                            compare_list.append(sht["E" + str(col.row)].value)
+                            old_list.append(sht["E" + str(col.row)].value)
+                        # 这边有队长或副队长
+                        elif sht["J" + str(col.row)].value is not None and sht["B" + str(col.row)].value == sht2["B1"].value:
+                            k += 1
+                            if k == ads_same_busho_kojin:
+                                lastone += 1
+                                break
+                        # 这边是个空值
+                        elif sht["J" + str(col.row)].value is None and sht["B" + str(col.row)].value == sht2["B1"].value:
+                            break
+
+                    elif "警備隊" not in sht2["J1"].value:
+                        lastone = sht.max_row + 1
+                        break
+
+                elif sht2["J1"].value is None:
+                    lastone = sht.max_row + 1
+                    break
+
+        elif ads_same_busho == 0:
+            lastone = sht.max_row + 1
+            break
+
+    # 其他(ad和ads之外)
     else:
         lastone = sht.max_row + 1
-
+        break
 
     print(f"插入的行号为:{lastone}")
 
@@ -292,22 +389,6 @@ for i in range(sht2.max_row):
 
     print(f"排序前：{old_list}")
     print(f"排序后：{compare_list}")
-
-
-    def insert_to_excel(row):
-
-        sht.insert_rows(row)
-
-        i = 0
-
-        for col in sht.iter_cols(min_row=row, max_col=22, max_row=row):
-             for cell in col:
-                 cell.value = temps[i]
-                 i += 1
-
-        sht2.delete_rows(1)
-
-        return
 
     if len(compare_list) == 1:
 
@@ -322,23 +403,42 @@ for i in range(sht2.max_row):
 
     elif len(compare_list) != 1:
 
-        if old_list != compare_list:
-            print(compare_list.index(sht2["E1"].value) + 1) #取得排序后列表中 排序目标的下一个人的index
-            print(compare_list[compare_list.index(sht2["E1"].value) + 1]) #通过index取得下一个人的人名
+        if old_list != compare_list :
+            if compare_list[-1] != sht2["E1"].value:
+                print(compare_list.index(sht2["E1"].value) + 1) #取得排序后列表中 排序目标的下一个人的index
+                print(compare_list[compare_list.index(sht2["E1"].value) + 1]) #通过index取得下一个人的人名
 
-            for t in range(lastone,2,-1):
-                if sht["E" + str(t)].value == compare_list[compare_list.index(sht2["E1"].value) + 1]:
-                    print(t) #应该插入的位置 行数
-                    break
+                for t in range(lastone,2,-1):
+                    if sht["E" + str(t)].value == compare_list[compare_list.index(sht2["E1"].value) + 1]:
+                        print(t) #应该插入的位置 行数
+                        break
 
-            temps = []
+                temps = []
 
-            for cell in sht2[1]:
-                temps.append(cell.value)
+                for cell in sht2[1]:
+                    temps.append(cell.value)
 
-            print(temps)
+                print(temps)
 
-            insert_to_excel(t)
+                insert_to_excel(t)
+
+            elif compare_list[-1] == sht2["E1"].value:
+                print(compare_list.index(sht2["E1"].value) - 1)  # 取得排序后列表中 排序目标的上一个人的index
+                print(compare_list[compare_list.index(sht2["E1"].value) - 1])  # 通过index取得上一个人的人名
+
+                for t in range(lastone, 2, -1):
+                    if sht["E" + str(t)].value == compare_list[compare_list.index(sht2["E1"].value) - 1]:
+                        print(t + 1)  # 应该插入的位置 行数
+                        break
+
+                temps = []
+
+                for cell in sht2[1]:
+                    temps.append(cell.value)
+
+                print(temps)
+
+                insert_to_excel(t + 1)
 
         elif old_list == compare_list:
             print(compare_list.index(sht2["E1"].value) - 1) #取得排序后列表中 排序目标的上一个人的index
@@ -361,11 +461,11 @@ for i in range(sht2.max_row):
 newname = filename.split(".xlsx")[0] + "_並び替え後.xlsx"
 
 book.save(newname)
-#os.remove(filename)
+os.remove(filename)
 
 print()
 print("-------------完成-------------")
 
-input("please press any key to exit!")
+input("please press Enter key to exit!")
 
 #pyinstaller -F rakumo.py
